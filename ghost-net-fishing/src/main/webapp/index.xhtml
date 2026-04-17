@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui">
+<h:head>
+    <title>Ghost Net Fishing</title>
+</h:head>
+<h:body>
+    <h1>Fallstudie - Geisternetze melden (IPWA02-01)</h1>
+
+    <h:form id="form">
+        <p:messages id="messages" closable="true" />
+
+        <p:panel header="Neues Netz erfassen" id="reportPanel">
+            <h:panelGrid columns="3" cellpadding="5">
+                <p:outputLabel for="lat" value="Breitengrad (Lat):" />
+                <p:inputNumber id="lat" value="#{ghostNetController.newNet.latitude}" 
+                               decimalPlaces="6" required="true" minValue="-90" maxValue="90" />
+                <p:message for="lat" />
+
+                <p:outputLabel for="lon" value="Längengrad (Lon):" />
+                <p:inputNumber id="lon" value="#{ghostNetController.newNet.longitude}" 
+                               decimalPlaces="6" required="true" minValue="-180" maxValue="180" />
+                <p:message for="lon" />
+
+                <p:outputLabel for="size" value="Größe:" />
+                <p:inputText id="size" value="#{ghostNetController.newNet.size}" required="true" />
+                <p:message for="size" />
+
+                <p:outputLabel for="repName" value="Dein Name:" />
+                <p:inputText id="repName" value="#{ghostNetController.reporter.name}" />
+                <h:outputText value="(optional)" style="font-size: small" />
+
+                <p:commandButton value="Speichern" action="#{ghostNetController.save()}" 
+                                 process="reportPanel" update="form" />
+            </h:panelGrid>
+        </p:panel>
+
+        <p:dataTable id="netTable" value="#{ghostNetController.ghostNets}" var="net" style="margin-top:20px">
+            <f:facet name="header">Liste der Geisternetze</f:facet>
+            
+            <p:column headerText="Position">
+                #{net.latitude} / #{net.longitude}
+            </p:column>
+            
+            <p:column headerText="Größe">
+                #{net.size}
+            </p:column>
+
+            <p:column headerText="Status">
+                <h:outputText value="#{net.status}"  />
+            </p:column>
+
+            <p:column headerText="Gemeldet von">
+                #{net.reporter != null ? net.reporter.name : 'Anonym'}
+            </p:column>
+
+            <p:column headerText="Bergung durch">
+                <h:outputText value="#{net.recoverer != null ? net.recoverer.name : 'offen'}" 
+                              style="#{net.recoverer != null ? 'font-weight:bold' : 'color:gray'}" />
+            </p:column>
+
+            <p:column headerText="Aktion">
+                <p:commandButton value="Bergen" 
+                 				 update=":form:recoverGrid" 
+                 				 oncomplete="PF('dlg').show()" 
+                 				 rendered="#{net.status == 'GEMELDET'}"
+                 				 process="@this">
+    				<f:setPropertyActionListener value="#{net}" target="#{ghostNetController.selectedNet}" />
+				</p:commandButton>
+
+                <p:commandButton value="Geborgen" 
+                                 action="#{ghostNetController.markAsRecovered(net)}" 
+                                 update="netTable"
+                                 process="@this"
+                                 rendered="#{net.status == 'BERGUNG_BEVORSTEHEND'}" />
+
+                <p:commandButton value="Verschollen" 
+                                 action="#{ghostNetController.markAsMissing(net)}" 
+                                 update="netTable"
+                                 process="@this"
+                                 rendered="#{net.status == 'BERGUNG_BEVORSTEHEND'}"
+                                 style="margin-left: 5px;" />
+            </p:column>
+        </p:dataTable>
+
+        <p:dialog header="Kontaktperson für Bergung" widgetVar="dlg" modal="true">
+            <h:panelGrid columns="2" id="recoverGrid">
+                <p:outputLabel for="recName" value="Name:" />
+                <p:inputText id="recName" value="#{ghostNetController.recoverer.name}" required="true" />
+                
+                <p:outputLabel value="Tel.:" />
+                <p:inputText value="#{ghostNetController.recoverer.phoneNumber}" />
+                
+                <p:commandButton value="Eintragen" 
+                 action="#{ghostNetController.assignRecoverer()}" 
+                 process="recoverGrid, @this" 
+                 oncomplete="PF('dlg').hide()" 
+                 update=":form:netTable" />
+            </h:panelGrid>
+        </p:dialog>
+    </h:form>
+</h:body>
+</html>
